@@ -1,14 +1,13 @@
 from flask import Flask, request, send_from_directory
-from gtts import gTTS
+import edge_tts
+import asyncio
 import os
 import uuid
 
 app = Flask(__name__)
 
-# Public URL من Railway Variables
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "")
 
-# إنشاء فولدر للملفات لو مش موجود
 STATIC_DIR = 'static'
 if not os.path.exists(STATIC_DIR):
     os.makedirs(STATIC_DIR)
@@ -21,15 +20,16 @@ def speak():
     if not text:
         return {"error": "No text provided"}, 400
     
-    # اسم ملف فريد
     filename = f"{uuid.uuid4()}.mp3"
     filepath = os.path.join(STATIC_DIR, filename)
     
-    # توليد الصوت
-    tts = gTTS(text=text, lang='en')
-    tts.save(filepath)
+    # edge-tts أسرع بكتير
+    async def generate():
+        communicate = edge_tts.Communicate(text, "en-US-JennyNeural")
+        await communicate.save(filepath)
     
-    # بناء الرابط الكامل
+    asyncio.run(generate())
+    
     audio_url = f"{PUBLIC_URL}/static/{filename}"
     
     return {
